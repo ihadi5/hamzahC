@@ -7,16 +7,21 @@ export default function DashboardStats() {
 
   useEffect(() => {
     Promise.all([
-      base44.entities.QuoteRequest.list(),
-      base44.entities.Review.list(),
-      base44.entities.Project.list(),
+      base44.entities.QuoteRequest.list().catch(() => []),
+      base44.entities.Review.list().catch(() => []),
+      base44.entities.Project.list().catch(() => []),
     ]).then(([quotes, reviews, projects]) => {
+      // التأكد التام من أن كل البيانات جداول حتى لو قاعدة البيانات فارغة
+      const safeQuotes = Array.isArray(quotes) ? quotes : [];
+      const safeReviews = Array.isArray(reviews) ? reviews : [];
+      const safeProjects = Array.isArray(projects) ? projects : [];
+
       setStats({
-        quotes: quotes.length,
-        newQuotes: quotes.filter(q => q.status === 'جديد').length,
-        reviews: reviews.length,
-        pendingReviews: reviews.filter(r => !r.is_approved).length,
-        projects: projects.length,
+        quotes: safeQuotes.length,
+        newQuotes: safeQuotes.filter(q => q.status === 'جديد').length,
+        reviews: safeReviews.length,
+        pendingReviews: safeReviews.filter(r => !r.is_approved).length,
+        projects: safeProjects.length,
       });
     });
   }, []);
@@ -30,7 +35,6 @@ export default function DashboardStats() {
 
   return (
     <div className="space-y-8">
-      {/* البطاقات العلوية */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {cards.map(card => (
           <div key={card.label} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
@@ -46,7 +50,6 @@ export default function DashboardStats() {
         ))}
       </div>
 
-      {/* قسم الإجراءات المطلوبة والتنبيهات */}
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
         <h3 className="font-bold text-[#0f1b2d] mb-4 text-lg">الإجراءات المطلوبة</h3>
         <div className="space-y-3">
@@ -56,14 +59,12 @@ export default function DashboardStats() {
               <p className="text-sm text-orange-800">يوجد <strong>{stats.newQuotes}</strong> طلب تسعيرة جديد بانتظار المراجعة.</p>
             </div>
           )}
-          
           {stats.pendingReviews > 0 && (
             <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 transition-colors hover:bg-amber-100">
               <Star className="w-5 h-5 text-amber-500 flex-shrink-0" />
               <p className="text-sm text-amber-800">يوجد <strong>{stats.pendingReviews}</strong> تقييم بانتظار الموافقة للنشر.</p>
             </div>
           )}
-          
           {stats.newQuotes === 0 && stats.pendingReviews === 0 && (
             <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-100 transition-colors hover:bg-green-100">
               <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
