@@ -7,7 +7,16 @@ export default function ReviewsManagement() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    base44.entities.Review.list('-created_date').then(data => { setReviews(data); setLoading(false); });
+    base44.entities.Review.list('-created_date')
+      .then(data => {
+        // التعديل السحري: نتأكد إن البيانات دائماً قائمة، وإذا مافي بيانات نحط قائمة فاضية
+        setReviews(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setReviews([]);
+        setLoading(false);
+      });
   }, []);
 
   const approve = async (id) => {
@@ -28,25 +37,28 @@ export default function ReviewsManagement() {
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
 
+  // حماية إضافية قبل الفلترة
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
           <h3 className="font-bold text-[#0f1b2d] flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-orange-500" />
-            التقييمات ({reviews.length})
+            التقييمات ({safeReviews.length})
           </h3>
           <div className="flex gap-4 text-sm bg-slate-50 px-4 py-2 rounded-xl">
             <span className="text-green-600 font-bold flex items-center gap-1">
-              <Check className="w-4 h-4" /> {reviews.filter(r => r.is_approved).length} منشور
+              <Check className="w-4 h-4" /> {safeReviews.filter(r => r.is_approved).length} منشور
             </span>
             <span className="text-amber-600 font-bold flex items-center gap-1">
-              <X className="w-4 h-4" /> {reviews.filter(r => !r.is_approved).length} معلق
+              <X className="w-4 h-4" /> {safeReviews.filter(r => !r.is_approved).length} معلق
             </span>
           </div>
         </div>
         
-        {reviews.length === 0 ? (
+        {safeReviews.length === 0 ? (
           <div className="text-center py-20 px-4">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Star className="w-8 h-8 text-slate-300" />
@@ -55,7 +67,7 @@ export default function ReviewsManagement() {
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {reviews.map(r => (
+            {safeReviews.map(r => (
               <div key={r.id} className={`p-6 flex flex-col sm:flex-row items-start gap-4 transition-colors ${!r.is_approved ? 'bg-amber-50/30 hover:bg-amber-50/50' : 'hover:bg-slate-50'}`}>
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0f1b2d] to-slate-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-md">
                   {r.name?.charAt(0) || 'ع'}
