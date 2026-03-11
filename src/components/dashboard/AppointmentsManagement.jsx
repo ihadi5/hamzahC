@@ -15,7 +15,9 @@ export default function AppointmentsManagement() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    base44.entities.Appointment.list('-created_date').then(data => { setItems(data); setLoading(false); });
+    base44.entities.Appointment.list('-created_date')
+      .then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { setItems([]); setLoading(false); });
   }, []);
 
   const updateStatus = async (id, status) => {
@@ -26,9 +28,10 @@ export default function AppointmentsManagement() {
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
 
+  const safeItems = Array.isArray(items) ? items : [];
+
   return (
     <div className="space-y-6">
-      {/* نافذة تفاصيل الموعد المنبثقة */}
       {selected && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -44,7 +47,6 @@ export default function AppointmentsManagement() {
               {selected.notes && <div><p className="text-slate-400 mb-1">ملاحظات</p><p className="bg-slate-50 p-3 rounded-xl text-slate-700">{selected.notes}</p></div>}
               <div>
                 <p className="text-slate-400 mb-2 mt-4">تغيير الحالة</p>
-                {/* استبدلنا مكون الـ Select المعقد بقائمة HTML نقية وسريعة */}
                 <select 
                   value={selected.status} 
                   onChange={e => updateStatus(selected.id, e.target.value)}
@@ -59,12 +61,11 @@ export default function AppointmentsManagement() {
         </div>
       )}
 
-      {/* جدول المواعيد */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-100">
-          <h3 className="font-bold text-[#0f1b2d] flex items-center gap-2"><CalendarCheck className="w-5 h-5 text-orange-500" /> المواعيد ({items.length})</h3>
+          <h3 className="font-bold text-[#0f1b2d] flex items-center gap-2"><CalendarCheck className="w-5 h-5 text-orange-500" /> المواعيد ({safeItems.length})</h3>
         </div>
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <p className="text-center text-slate-400 py-16">لا توجد مواعيد بعد</p>
         ) : (
           <div className="overflow-x-auto">
@@ -80,7 +81,7 @@ export default function AppointmentsManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {items.map(a => (
+                {safeItems.map(a => (
                   <tr key={a.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-[#0f1b2d]">{a.name}</td>
                     <td className="px-6 py-4 text-slate-600">{a.service_type}</td>
