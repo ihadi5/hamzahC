@@ -12,7 +12,16 @@ export default function ProjectsManagement() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    base44.entities.Project.list('-created_date').then(data => { setProjects(data); setLoading(false); });
+    base44.entities.Project.list('-created_date')
+      .then(data => {
+        // حماية البيانات
+        setProjects(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProjects([]);
+        setLoading(false);
+      });
   }, []);
 
   const handleSave = async () => {
@@ -39,16 +48,22 @@ export default function ProjectsManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(prev => ({ ...prev, image_url: file_url }));
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(prev => ({ ...prev, image_url: file_url }));
+    } catch(err) {
+      console.error(err);
+    }
     setUploading(false);
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
 
+  const safeProjects = Array.isArray(projects) ? projects : [];
+
   return (
     <div className="space-y-6">
-      {/* نافذة إضافة وتعديل المشروع (Modal) */}
+      {/* نافذة الإضافة والتعديل */}
       {form && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -58,54 +73,21 @@ export default function ProjectsManagement() {
             </div>
             
             <div className="space-y-4">
-              <input 
-                type="text" 
-                placeholder="عنوان المشروع *" 
-                value={form.title} 
-                onChange={e => setForm(p => ({ ...p, title: e.target.value }))} 
-                className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" 
-              />
+              <input type="text" placeholder="عنوان المشروع *" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" />
               
-              <select 
-                value={form.category} 
-                onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white text-slate-700 font-medium"
-              >
+              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white text-slate-700 font-medium">
                 <option value="" disabled>اختر فئة المشروع *</option>
                 {['سباكة','كهرباء','دهانات','مقاولات','توريد'].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
 
               <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="text" 
-                  placeholder="اسم العميل" 
-                  value={form.client} 
-                  onChange={e => setForm(p => ({ ...p, client: e.target.value }))} 
-                  className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" 
-                />
-                <input 
-                  type="text" 
-                  placeholder="الموقع" 
-                  value={form.location} 
-                  onChange={e => setForm(p => ({ ...p, location: e.target.value }))} 
-                  className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" 
-                />
+                <input type="text" placeholder="اسم العميل" value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))} className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" />
+                <input type="text" placeholder="الموقع" value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" />
               </div>
               
-              <input 
-                type="text" 
-                placeholder="سنة الإنجاز" 
-                value={form.year} 
-                onChange={e => setForm(p => ({ ...p, year: e.target.value }))} 
-                className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" 
-              />
+              <input type="text" placeholder="سنة الإنجاز" value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))} className="w-full px-4 h-11 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white" />
               
-              <textarea 
-                placeholder="وصف المشروع" 
-                value={form.description} 
-                onChange={e => setForm(p => ({ ...p, description: e.target.value }))} 
-                className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white resize-none min-h-[80px]" 
-              />
+              <textarea placeholder="وصف المشروع" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:border-orange-500 bg-white resize-none min-h-[80px]" />
               
               {/* رفع الصورة */}
               <div>
@@ -131,11 +113,7 @@ export default function ProjectsManagement() {
               </label>
             </div>
             
-            <button 
-              onClick={handleSave} 
-              disabled={saving || !form.title || !form.category} 
-              className="w-full flex items-center justify-center h-12 mt-8 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl font-bold transition-colors"
-            >
+            <button onClick={handleSave} disabled={saving || !form.title || !form.category} className="w-full flex items-center justify-center h-12 mt-8 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl font-bold transition-colors">
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 ml-2" /> حفظ المشروع</>}
             </button>
           </div>
@@ -145,13 +123,13 @@ export default function ProjectsManagement() {
       {/* قائمة المشاريع */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <h3 className="font-bold text-[#0f1b2d] text-lg">المشاريع ({projects.length})</h3>
+          <h3 className="font-bold text-[#0f1b2d] text-lg">المشاريع ({safeProjects.length})</h3>
           <button onClick={() => setForm(EMPTY)} className="flex items-center px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-colors text-sm">
             <Plus className="w-4 h-4 ml-2" /> إضافة مشروع جديد
           </button>
         </div>
         
-        {projects.length === 0 ? (
+        {safeProjects.length === 0 ? (
           <div className="text-center py-20 px-4">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Upload className="w-8 h-8 text-slate-300" />
@@ -160,7 +138,7 @@ export default function ProjectsManagement() {
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {projects.map(p => (
+            {safeProjects.map(p => (
               <div key={p.id} className="flex flex-wrap sm:flex-nowrap items-center gap-4 p-5 hover:bg-slate-50 transition-colors">
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.title} className="w-16 h-16 rounded-xl object-cover flex-shrink-0 border border-slate-100 shadow-sm" />
